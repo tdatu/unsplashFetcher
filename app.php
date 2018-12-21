@@ -7,6 +7,7 @@ use React\HttpClient\Response;
 
 
 require __DIR__ . "/vendor/autoload.php";
+require __DIR__ . "/fetcher.php";
 
 $config = new Config(__DIR__ . "/config.ini");
 $url = $config->get("unsplash.url");
@@ -24,8 +25,9 @@ $headers = [
 ];
 
 $client = new Client($loop);
+$fetcher = new Fetcher($client);
 
-$loop->addPeriodicTimer(3, function() use ($client,$url,&$headers,$categories, &$index){
+$loop->addPeriodicTimer($freq, function() use ($client,$url,&$headers,$categories, &$index, &$fetcher){
 	
 	if($index < count($categories)){
 
@@ -33,12 +35,17 @@ $loop->addPeriodicTimer(3, function() use ($client,$url,&$headers,$categories, &
 
 		$request = $client->request("GET", $url . "search/photos?query=" . $categories[$index], $headers);
 	
-		$request->on("response", function($response){
+		$request->on("response", function($response) use (&$fetcher){
 			
-			$response->on("data", function($chunk){
+			$response->on("data", function($chunk) use (&$fetcher) {
 				$json = json_decode($chunk);
-				foreach($json->results as $photo){
-					echo $photo->urls->raw . "\n";
+				if(! isset($json->{'errors'})){
+					foreach($json->{'results'} as $photo){
+					
+						//var_dump($photo);
+						$fetcher->download($photo->{'id'},$photo->{'urls'}->{'raw'});
+					
+					}
 				}	
 			});
 
