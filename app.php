@@ -4,7 +4,7 @@ use Noodlehaus\Config;
 use Noodlehaus\Parser\Json;
 use React\HttpClient\Client;
 use React\HttpClient\Response;
-
+use React\Stream\DuplexResourceStream;
 
 require __DIR__ . "/vendor/autoload.php";
 require __DIR__ . "/fetcher.php";
@@ -24,16 +24,17 @@ $headers = [
 	"Authorization" => "Client-ID " . $access_key 
 ];
 
-$client = new Client($loop);
-$fetcher = new Fetcher($client);
+$clientApi = new Client($loop);
+$clientPhoto = new Client($loop);
+$fetcher = new Fetcher($clientPhoto, $loop);
 
-$loop->addPeriodicTimer($freq, function() use ($client,$url,&$headers,$categories, &$index, &$fetcher){
+$loop->addPeriodicTimer($freq, function() use ($clientApi,$url,&$headers,$categories, &$index, &$fetcher){
 	
 	if($index < count($categories)){
 
 		echo "Cat: " . $categories[$index] . "\n";
 
-		$request = $client->request("GET", $url . "search/photos?query=" . $categories[$index], $headers);
+		$request = $clientApi->request("GET", $url . "search/photos?query=" . $categories[$index], $headers);
 	
 		$request->on("response", function($response) use (&$fetcher){
 			
@@ -41,10 +42,7 @@ $loop->addPeriodicTimer($freq, function() use ($client,$url,&$headers,$categorie
 				$json = json_decode($chunk);
 				if(! isset($json->{'errors'})){
 					foreach($json->{'results'} as $photo){
-					
-						//var_dump($photo);
 						$fetcher->download($photo->{'id'},$photo->{'urls'}->{'raw'});
-					
 					}
 				}	
 			});
@@ -60,11 +58,13 @@ $loop->addPeriodicTimer($freq, function() use ($client,$url,&$headers,$categorie
 		});
 		
 		$request->end();
-	
 			
 		$index++;
+	
 	}else{
+
 		$index = 0;
+
 	}	
 
 });

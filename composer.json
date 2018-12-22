@@ -1,6 +1,7 @@
 {
     "require": {
         "react/http-client": "^0.5.9",
-        "hassankhan/config": "^2.0"
+        "hassankhan/config": "^2.0",
+        "react/stream": "^1.0"
     }
 }
